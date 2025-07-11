@@ -8,7 +8,7 @@ import { JSONFile } from "lowdb/node";
 
 // ─── __dirname shim ───────────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 // ─── Ensure db.json exists ────────────────────────────────────────────────────
 const dbFile = path.join(__dirname, "db.json");
@@ -18,10 +18,9 @@ if (!fs.existsSync(dbFile)) {
 
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
 const adapter = new JSONFile(dbFile);
-const db      = new Low(adapter);
+const db = new Low(adapter, { posts: [] }); // ← passing default data here!
 
 await db.read();
-db.data ||= { posts: [] };
 await db.write();
 
 // ─── App & Middleware ─────────────────────────────────────────────────────────
@@ -30,12 +29,12 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // ─── PIN CHECK ────────────────────────────────────────────────────────────────
-const ADMIN_PIN    = process.env.ADMIN_PIN    || "4120";
+const ADMIN_PIN = process.env.ADMIN_PIN || "4120";
 const OBSERVER_PIN = process.env.OBSERVER_PIN || "5306";
 
 app.post("/api/check-pin", (req, res) => {
   const { pin } = req.body;
-  if (pin === ADMIN_PIN)    return res.json({ success: true, role: "admin" });
+  if (pin === ADMIN_PIN) return res.json({ success: true, role: "admin" });
   if (pin === OBSERVER_PIN) return res.json({ success: true, role: "observer" });
   return res.status(401).json({ success: false, message: "Неправилан PIN." });
 });
@@ -62,7 +61,7 @@ app.post("/api/posts", async (req, res) => {
 
 app.put("/api/posts/:id", async (req, res) => {
   await db.read();
-  const post = db.data.posts.find(p => p.id === req.params.id);
+  const post = db.data.posts.find((p) => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Not found" });
   Object.assign(post, req.body);
   await db.write();
@@ -71,7 +70,7 @@ app.put("/api/posts/:id", async (req, res) => {
 
 app.delete("/api/posts/:id", async (req, res) => {
   await db.read();
-  db.data.posts = db.data.posts.filter(p => p.id !== req.params.id);
+  db.data.posts = db.data.posts.filter((p) => p.id !== req.params.id);
   await db.write();
   res.json({ success: true });
 });
