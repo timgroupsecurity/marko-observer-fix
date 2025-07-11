@@ -1,6 +1,7 @@
 // server.js
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
@@ -9,8 +10,13 @@ import { JSONFile } from "lowdb/node";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
+// ─── Ensure db.json exists ────────────────────────────────────────────────────
+const dbFile = path.join(__dirname, "db.json");
+if (!fs.existsSync(dbFile)) {
+  fs.writeFileSync(dbFile, JSON.stringify({ posts: [] }, null, 2));
+}
+
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
-const dbFile  = path.join(__dirname, "db.json");
 const adapter = new JSONFile(dbFile);
 const db      = new Low(adapter);
 
