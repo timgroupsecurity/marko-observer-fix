@@ -189,195 +189,159 @@ POSTS HTML
 <body>
 
 <script>
-  // Redirect to login if no role set
-  if (!localStorage.getItem("userRole")) {
-    window.location.href = "index.html";
+const API = "/api/posts";
+const userRole = localStorage.getItem("userRole");
+
+// Hide add button for observers
+window.addEventListener('DOMContentLoaded', () => {
+  if (userRole !== "admin") {
+    document.querySelector('.floating-btn').style.display = 'none';
   }
+  loadPosts();
+});
+
+function formatTs(ts) {
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yy} ${hh}:${min}`;
+}
+
+let posts = [];
+
+async function loadPosts() {
+  const res = await fetch(API);
+  posts = await res.json();
+  renderPosts();
+}
+
+function createPostElement(p) {
+  const div = document.createElement('div');
+  div.className = 'post';
+  div.innerHTML = `
+    <div class="datetime">${formatTs(p.timestamp)}</div>
+    <div class="author">Администратор <span class="pin-icon" style="display:${p.pinned ? 'inline' : 'none'};">📌</span></div>
+    ${userRole === "admin" ? `
+      <div class="post-menu" onclick="togglePostMenu(this)">⋯</div>
+      <div class="menu-options">
+        <button onclick="togglePin('${p.id}')">${p.pinned ? 'Депинуј' : 'Пинуј'}</button>
+        <button onclick="startEdit('${p.id}')">Уреди</button>
+        <button onclick="removePost('${p.id}')">Обриши</button>
+      </div>` : ''}
+    <div class="post-content">${p.text}</div>
+    ${p.img ? `<img src="${p.img}" alt=""/>` : ''}
+  `;
+  return div;
+}
+
+async function submitPost() {
+  const text = document.getElementById('modalText').value.trim();
+  const photo = document.getElementById('modalPhoto').files[0];
+  let imgData = null;
+  if (photo) {
+    imgData = await new Promise(r => {
+      const fr = new FileReader();
+      fr.onload = () => r(fr.result);
+      fr.readAsDataURL(photo);
+    });
+  }
+  await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, img: imgData })
+  });
+  closeModal();
+  loadPosts();
+}
+
+async function togglePin(id) {
+  const post = posts.find(p => p.id === id);
+  await fetch(`${API}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pinned: !post.pinned })
+  });
+  loadPosts();
+}
+
+async function removePost(id) {
+  await fetch(`${API}/${id}`, { method: "DELETE" });
+  loadPosts();
+}
+
+function startEdit(id) {
+  const postEl = [...document.querySelectorAll('.post')].find(el =>
+    el.innerHTML.includes(`togglePin('${id}')`)
+  );
+  const p = posts.find(x => x.id === id);
+  const content = postEl.querySelector('.post-content');
+  content.innerHTML = `<textarea>${p.text}</textarea>
+    <div class="edit-actions">
+      <button onclick="saveEdit('${id}')">Сачувај</button>
+      <button onclick="loadPosts()">Откажи</button>
+    </div>`;
+}
+
+async function saveEdit(id) {
+  const postEl = [...document.querySelectorAll('.post')].find(el =>
+    el.innerHTML.includes(`togglePin('${id}')`)
+  );
+  const newText = postEl.querySelector('textarea').value;
+  await fetch(`${API}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: newText })
+  });
+  loadPosts();
+}
+
+function toggleMenu() {
+  document.getElementById('sideMenu').classList.toggle('open');
+}
+
+function openModal() {
+  document.getElementById('postModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('postModal').classList.remove('open');
+  document.getElementById('modalText').value = '';
+  document.getElementById('modalPhoto').value = '';
+  document.getElementById('fileName').textContent = 'Ниједан фајл није изабран';
+}
+
+document.getElementById('helpMenuBtn').onclick = e => {
+  e.preventDefault();
+  document.getElementById('helpModal').classList.add('open');
+};
+
+function closeHelp() {
+  document.getElementById('helpModal').classList.remove('open');
+}
+
+function updateFileName() {
+  const inp = document.getElementById('modalPhoto'),
+        lbl = document.getElementById('fileName');
+  lbl.textContent = inp.files[0]?.name || 'Ниједан фајл није изабран';
+}
+
+document.addEventListener('click', e => {
+  document.querySelectorAll('.menu-options').forEach(m => {
+    if (!m.contains(e.target) && !m.previousElementSibling.contains(e.target)) {
+      m.style.display = 'none';
+    }
+  });
+});
+
+function togglePostMenu(el) {
+  const menu = el.nextElementSibling;
+  menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+}
 </script>
 
-  <div class="watermark">T&amp;M<br>Solutions<br>HR</div>
-
-  <!-- Menu & Logo -->
-  <div class="menu-icon" onclick="toggleMenu()">
-    <span></span><span></span><span></span>
-  </div>
-  <nav class="menu" id="sideMenu">
-    <div class="menu-logo">
-      <img src="logo.png" alt="T&amp;M HR Logo"/>
-    </div>
-    <a id="helpMenuBtn" href="#">Помоћ</a>
-    <a class="logout" href="index.html">Одјави се</a>
-  </nav>
-
-  <!-- Help Modal -->
-  <div class="modal" id="helpModal">
-    <div class="modal-content">
-      <div class="close" onclick="closeHelp()">✕</div>
-      <h2>Помоћ</h2>
-      <p>Е-пошта: <a href="mailto:info@timhr.rs">info@timhr.rs</a></p>
-      <p>Телефон: <a href="tel:+381621246823">+381 62 124 6823</a></p>
-      <p>Телефон: <a href="tel:+381621246824">+381 62 124 6824</a></p>
-    </div>
-  </div>
-
-  <!-- Feed -->
-  <div class="feed" id="postsContainer"></div>
-
-  <!-- Floating Add -->
-  <div class="floating-btn" onclick="openModal()">+</div>
-
-  <!-- Post Creation Modal -->
-  <div class="modal" id="postModal">
-    <div class="modal-content">
-      <textarea id="modalText" placeholder="Напишите нешто…"></textarea>
-      <div class="custom-file">
-        <label for="modalPhoto">📎 Изабери фајл</label>
-        <span id="fileName">Ниједан фајл није изабран</span>
-        <input type="file" id="modalPhoto" accept="image/*" onchange="updateFileName()"/>
-      </div>
-      <div class="actions">
-        <button class="cancel-btn" onclick="closeModal()">Откажи</button>
-        <button class="submit-btn" onclick="submitPost()">Окачи</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // ─── UTILS ──────────────────────────────────────────────────────────────
-    const API = "/api/posts";
-    function formatTs(ts) {
-      const d=new Date(ts),
-            dd=String(d.getDate()).padStart(2,'0'),
-            mm=String(d.getMonth()+1).padStart(2,'0'),
-            yy=d.getFullYear(),
-            hh=String(d.getHours()).padStart(2,'0'),
-            min=String(d.getMinutes()).padStart(2,'0');
-      return ${dd}/${mm}/${yy} ${hh}:${min};
-    }
-
-    // ─── FETCH + RENDER ─────────────────────────────────────────────────────
-    let posts = [];
-    async function loadPosts() {
-      const res = await fetch(API);
-      posts = await res.json();
-      renderPosts();
-    }
-
-    function createPostElement(p) {
-      const div = document.createElement('div');
-      div.className = 'post';
-      div.innerHTML = 
-        <div class="datetime">${formatTs(p.timestamp)}</div>
-        <div class="author">Администратор <span class="pin-icon">📌</span></div>
-        <div class="post-menu" onclick="togglePostMenu(this)">⋯</div>
-        <div class="menu-options">
-          <button onclick="togglePin('${p.id}')">${p.pinned? 'Депинуј':'Пинуј'}</button>
-          <button onclick="startEdit('${p.id}')">Уреди</button>
-          <button onclick="removePost('${p.id}')">Обриши</button>
-        </div>
-        <div class="post-content">${p.text}</div>
-        ${p.img? <img src="${p.img}" alt=""/> : ''}
-      ;
-      if (p.pinned) div.querySelector('.pin-icon').style.display = 'inline';
-      return div;
-    }
-
-    function renderPosts() {
-      const container = document.getElementById('postsContainer');
-      container.innerHTML = '';
-      posts
-        .sort((a,b)=> (b.pinned?1:0)-(a.pinned?1:0))
-        .forEach(p => container.appendChild(createPostElement(p)));
-    }
-
-    // ─── CRUD ACTIONS ──────────────────────────────────────────────────────
-    async function submitPost() {
-      const text = document.getElementById('modalText').value.trim();
-      const photo = document.getElementById('modalPhoto').files[0];
-      let imgData = null;
-      if (photo) {
-        imgData = await new Promise(r => {
-          const fr = new FileReader();
-          fr.onload = () => r(fr.result);
-          fr.readAsDataURL(photo);
-        });
-      }
-      await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ text, img: imgData })
-      });
-      closeModal();
-      loadPosts();
-    }
-
-    async function togglePin(id){
-      const post = posts.find(p=>p.id===id);
-      await fetch(${API}/${id}, {
-        method: "PUT",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ pinned: !post.pinned })
-      });
-      loadPosts();
-    }
-
-    async function removePost(id){
-      await fetch(${API}/${id}, { method: "DELETE" });
-      loadPosts();
-    }
-
-    function startEdit(id){
-      const postEl = [...document.querySelectorAll('.post')]
-        .find(el=> el.querySelector(".menu-options button").onclick
-          .toString().includes(id)
-        );
-      const p = posts.find(x=>x.id===id);
-      const content = postEl.querySelector('.post-content');
-      content.innerHTML = <textarea>${p.text}</textarea>
-        <div class="edit-actions">
-          <button onclick="saveEdit('${id}')">Сачувај</button>
-          <button onclick="loadPosts()">Откажи</button>
-        </div>;
-    }
-    async function saveEdit(id){
-      const postEl = [...document.querySelectorAll('.post')]
-        .find(el=> el.querySelector(".menu-options button").onclick
-          .toString().includes(id)
-        );
-      const newText = postEl.querySelector('textarea').value;
-      await fetch(${API}/${id}, {
-        method: "PUT",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ text: newText })
-      });
-      loadPosts();
-    }
-
-    // ─── MISC UI ────────────────────────────────────────────────────────────
-    function toggleMenu(){ document.getElementById('sideMenu').classList.toggle('open'); }
-    function openModal(){ document.getElementById('postModal').classList.add('open'); }
-    function closeModal(){
-      document.getElementById('postModal').classList.remove('open');
-      document.getElementById('modalText').value = '';
-      document.getElementById('modalPhoto').value = '';
-      document.getElementById('fileName').textContent = 'Ниједан фајл није изабран';
-    }
-    document.getElementById('helpMenuBtn').onclick = e=>{ e.preventDefault(); document.getElementById('helpModal').classList.add('open'); };
-    function closeHelp(){ document.getElementById('helpModal').classList.remove('open'); }
-    function updateFileName(){
-      const inp = document.getElementById('modalPhoto'),
-            lbl = document.getElementById('fileName');
-      lbl.textContent = inp.files[0]?.name || 'Ниједан фајл није изабран';
-    }
-    document.addEventListener('click', e=> {
-      document.querySelectorAll('.menu-options').forEach(m=> {
-        if (!m.contains(e.target) && !m.previousElementSibling.contains(e.target)) {
-          m.style.display = 'none';
-        }
-      });
-    });
-    window.addEventListener('DOMContentLoaded', loadPosts);
-  </script>
 
 </body>
 </html>
