@@ -4,431 +4,163 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
   <title>Posts</title>
-  <style>
-    /* Reset & body */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Arial, sans-serif;
-      color: white;
-      height: 100vh;
-      overflow-x: hidden;
-      background: radial-gradient(ellipse at center, rgba(40,40,40,0.9), rgba(20,20,20,1));
-      position: relative;
-    }
-    body::before {
-      content: "";
-      position: fixed; top:-50%; left:-50%;
-      width:200%; height:200%;
-      background: linear-gradient(135deg,#5e1a94,#256b9f);
-      z-index:0;
-    }
-    .watermark {
-      position: fixed; top:50%; left:50%;
-      transform: translate(-50%,-50%);
-      font-family: Impact, Arial Black, sans-serif;
-      font-size: 10vw; color: rgba(255,255,255,0.05);
-      pointer-events: none; user-select: none;
-      text-align: center; line-height:1.2; white-space: pre-line;
-      z-index:0;
-    }
-
-    /* Burger menu */
-    .menu-icon {
-      position: fixed; top:20px; left:20px;
-      width:30px; height:22px; display:flex;
-      flex-direction:column; justify-content:space-between;
-      cursor:pointer; z-index:100;
-    }
-    .menu-icon span {
-      display:block; height:4px; background:#fff; border-radius:2px;
-    }
-    nav.menu {
-      position: fixed; top:0; left:0;
-      width:260px; height:100%;
-      background: rgba(0,0,0,0.9);
-      padding:60px 20px;
-      transform: translateX(-100%);
-      transition: transform .3s ease;
-      z-index:99;
-      display:flex; flex-direction:column; align-items:center;
-    }
-    nav.menu.open { transform: translateX(0); }
-    .menu-logo img {
-      width:120px; height:auto; margin-bottom:40px;
-    }
-    nav.menu a {
-      color: gold; text-decoration: none;
-      margin-bottom:20px; font-size:1.2em;
-    }
-    nav.menu a.logout {
-      color:#aa0000;
-    }
-    nav.menu a.logout:hover {
-      color:#ff3333;
-    }
-
-    /* Help modal */
-    .modal {
-      position: fixed; top:0; left:0;
-      width:100vw; height:100vh;
-      background:rgba(0,0,0,0.8);
-      display:none; align-items:center; justify-content:center;
-      z-index:200;
-    }
-    .modal.open { display:flex; }
-    .modal-content {
-      background:#000; color:#fff;
-      padding:30px; border-radius:10px;
-      max-width:400px; width:90%;
-      box-shadow:0 0 15px rgba(0,0,0,0.8);
-      text-align:left; position:relative;
-    }
-    .modal-content .close {
-      position:absolute; top:10px; right:10px;
-      font-size:1.2em; cursor:pointer; color:#fff;
-    }
-    .modal-content h2 { margin-bottom:15px; font-size:1.5em; }
-    .modal-content p { margin:10px 0; font-size:1.1em; }
-    .modal-content a { color: gold; text-decoration: none; }
-    .modal-content a:hover { text-decoration: underline; }
-
-    /* Feed (2cm top gap) */
-    .feed {
-      max-width:600px;
-      margin:2cm auto 80px;
-      padding:0 10px;
-      position:relative; z-index:1;
-    }
-
-    /* Post */
-    .post {
-      background: rgba(255,255,255,0.15);
-      border-radius:10px;
-      padding:0 15px 15px; /* tighter header→content gap */
-      margin-bottom:20px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.2);
-      backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.2);
-      white-space:pre-wrap; position:relative;
-    }
-    .post .datetime {
-      position:absolute; top:15px; right:15px;
-      font-size:0.85em; color:#ddd;
-    }
-    .post .author {
-      position:absolute; top:15px; left:15px;
-      font-weight:bold; font-size:0.95em; display:flex; align-items:center;
-    }
-    .post .pin-icon {
-      margin-left:6px; font-size:1em; color:gold; display:none;
-    }
-    .post img {
-      max-width:100%; border-radius:8px; margin-top:5px;
-    }
-
-    /* Floating add */
-    .floating-btn {
-      position:fixed; bottom:20px; right:20px;
-      width:60px; height:60px; background:#1d9bf0; color:white;
-      font-size:36px; border-radius:50%; display:flex;
-      align-items:center; justify-content:center; cursor:pointer;
-      z-index:10; box-shadow:0 2px 8px rgba(0,0,0,0.3);
-    }
-
-    /* Post modal */
-    .modal-content textarea {
-      width:100%; height:100px; padding:10px; font-size:1em; resize:none;
-    }
-    .custom-file {
-      display:flex; flex-direction:column; gap:6px; font-size:0.95em; color:black;
-    }
-    .custom-file label {
-      background:#1d9bf0; color:white; padding:6px 12px;
-      border-radius:6px; cursor:pointer; width:fit-content;
-    }
-    .custom-file input[type="file"] { display:none; }
-    #fileName { font-style:italic; }
-    .actions {
-      display:flex; justify-content:space-between; margin-top:10px;
-    }
-    .actions button {
-      padding:6px 14px; font-size:1em; border:none; border-radius:5px; cursor:pointer;
-    }
-    .cancel-btn { background:#ccc; }
-    .submit-btn { background:gold; }
-
-    /* Post menu */
-    .post-menu {
-      position:absolute; top:45px; right:15px; font-size:20px; cursor:pointer;
-    }
-    .menu-options {
-      position:absolute; top:70px; right:15px;
-      background:#222; color:#fff; border-radius:6px;
-      display:none; flex-direction:column; box-shadow:0 0 10px rgba(0,0,0,0.4);
-      z-index:10;
-    }
-    .menu-options button {
-      background:none; border:none; color:#fff; padding:10px 15px;
-      text-align:left; cursor:pointer; font-size:0.95em; border-bottom:1px solid #444;
-    }
-    .menu-options button:last-child { border-bottom:none; }
-    .menu-options button:hover { background:#444; }
-
-    .edit-actions {
-      display:flex; justify-content:flex-end; gap:10px; margin-top:10px;
-    }
-    .edit-actions .save-btn {
-      background:#1d9bf0; color:white; border:none; padding:4px 12px; cursor:pointer;
-    }
-    .edit-actions .cancel-btn {
-      background:#ccc; border:none; padding:4px 12px; cursor:pointer;
-    }
-  </style>
+  <style>/* your existing CSS… */</style>
 </head>
 <body>
 
 <script>
-  const userRole = localStorage.getItem('userRole');
-  const isObserver = (userRole === 'observer');
-  window.addEventListener('DOMContentLoaded', () => {
-    if (isObserver) {
-      // Hide add-post button
-      const addBtn = document.querySelector('.floating-btn');
-      if (addBtn) addBtn.style.display = 'none';
-      // Hide three-dots menu and options
-      document.querySelectorAll('.post-menu, .menu-options').forEach(el => el.style.display = 'none');
-    }
-  });
+  // Redirect to login if no role set
+  if (!localStorage.getItem("userRole")) {
+    window.location.href = "index.html";
+  }
 </script>
 
-  <div class="watermark">T&amp;M<br>Solutions<br>HR</div>
+<div class="watermark">T&amp;M<br>Solutions<br>HR</div>
+<div class="menu-icon" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+<nav class="menu" id="sideMenu">…</nav>
+<div class="modal" id="helpModal">…</div>
 
-  <!-- Menu & Logo -->
-  <div class="menu-icon" onclick="toggleMenu()">
-    <span></span><span></span><span></span>
-  </div>
-  <nav class="menu" id="sideMenu">
-    <div class="menu-logo">
-      <img src="logo.png" alt="T&amp;M HR Logo"/>
-    </div>
-    <a id="helpMenuBtn" href="#">Помоћ</a>
-    <a class="logout" href="index.html">Одјави се</a>
-  </nav>
+<div class="feed" id="postsContainer"></div>
+<div class="floating-btn" onclick="openModal()">+</div>
+<div class="modal" id="postModal">…</div>
 
-  <!-- Help Modal -->
-  <div class="modal" id="helpModal">
-    <div class="modal-content">
-      <div class="close" onclick="closeHelp()">✕</div>
-      <h2>Помоћ</h2>
-      <p>Е-пошта: <a href="mailto:info@timhr.rs">info@timhr.rs</a></p>
-      <p>Телефон: <a href="tel:+381621246823">+381 62 124 6823</a></p>
-      <p>Телефон: <a href="tel:+381621246824">+381 62 124 6824</a></p>
-    </div>
-  </div>
+<script>
+  // ─── UTILS ──────────────────────────────────────────────────────────────
+  const API = "/api/posts";
+  function formatTs(ts) {
+    const d=new Date(ts),
+          dd=String(d.getDate()).padStart(2,'0'),
+          mm=String(d.getMonth()+1).padStart(2,'0'),
+          yy=d.getFullYear(),
+          hh=String(d.getHours()).padStart(2,'0'),
+          min=String(d.getMinutes()).padStart(2,'0');
+    return `${dd}/${mm}/${yy} ${hh}:${min}`;
+  }
 
-  <!-- Feed -->
-  <div class="feed" id="postsContainer"></div>
-
-  <!-- Floating Add -->
-  <div class="floating-btn" onclick="openModal()">+</div>
-
-  <!-- Post Creation Modal -->
-  <div class="modal" id="postModal">
-    <div class="modal-content">
-      <textarea id="modalText" placeholder="Напишите нешто…"></textarea>
-      <div class="custom-file">
-        <label for="modalPhoto">📎 Изабери фајл</label>
-        <span id="fileName">Ниједан фајл није изабран</span>
-        <input type="file" id="modalPhoto" accept="image/*" onchange="updateFileName()"/>
-      </div>
-      <div class="actions">
-        <button class="cancel-btn" onclick="closeModal()">Откажи</button>
-        <button class="submit-btn" onclick="submitPost()">Окачи</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Menu toggle
-    function toggleMenu() {
-      document.getElementById('sideMenu').classList.toggle('open');
-    }
-    document.addEventListener('click', e => {
-      const menu = document.getElementById('sideMenu'),
-            icon = document.querySelector('.menu-icon');
-      if (!menu.contains(e.target) && !icon.contains(e.target)) {
-        menu.classList.remove('open');
-      }
-    });
-
-    // Help modal
-    document.getElementById('helpMenuBtn').addEventListener('click', e => {
-      e.preventDefault();
-      document.getElementById('helpModal').classList.add('open');
-    });
-    function closeHelp() {
-      document.getElementById('helpModal').classList.remove('open');
-    }
-
-    // Post modal controls
-    function openModal() {
-      document.getElementById('postModal').classList.add('open');
-    }
-    function closeModal() {
-      document.getElementById('postModal').classList.remove('open');
-      document.getElementById('modalText').value = '';
-      document.getElementById('modalPhoto').value = '';
-      document.getElementById('fileName').textContent = 'Ниједан фајл није изабран';
-    }
-    function updateFileName() {
-      const inp = document.getElementById('modalPhoto'),
-            lbl = document.getElementById('fileName');
-      lbl.textContent = inp.files[0]?.name || 'Ниједан фајл није изабран';
-    }
-
-    // Persistence
-    const STORAGE_KEY = 'posts';
-    let posts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-      .map(p => ({
-        text: p.text,
-        img: p.img,
-        pinned: p.pinned || false,
-        timestamp: p.timestamp || Date.now()
-      }));
-
-    function persist() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-    }
-
-    // Format timestamp dd/mm/yyyy HH:MM
-    function formatTs(ts) {
-      const d = new Date(ts);
-      const dd = String(d.getDate()).padStart(2,'0');
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const yy = d.getFullYear();
-      const hh = String(d.getHours()).padStart(2,'0');
-      const min = String(d.getMinutes()).padStart(2,'0');
-      return `${dd}/${mm}/${yy} ${hh}:${min}`;
-    }
-
-    // Create a single post element
-    function createPostElement({ text, img, pinned, timestamp }) {
-      const post = document.createElement('div');
-      post.className = 'post';
-      post.innerHTML = `
-        <div class="datetime">${formatTs(timestamp)}</div>
-        <div class="author">Администратор <span class="pin-icon">📌</span></div>
-        <div class="post-menu" onclick="togglePostMenu(this)">⋯</div>
-        <div class="menu-options">
-          <button onclick="pinPost(this)">${pinned ? 'Депинуј' : 'Пинуј'}</button>
-          <button onclick="editPost(this)">Уреди</button>
-          <button onclick="deletePost(this)">Обриши</button>
-        </div>
-        <div class="post-content">${text}</div>
-        ${img ? `<img src="${img}" alt="Приложена слика"/>` : ''}
-      `;
-      if (pinned) post.querySelector('.pin-icon').style.display = 'inline';
-      return post;
-    }
-
-    // Render all posts (pinned first)
-    const container = document.getElementById('postsContainer');
-    function renderPosts() {
-      // keep pinned at top
-      posts.sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
-      container.innerHTML = '';
-      posts.forEach(p => {
-        container.appendChild(createPostElement(p));
-      });
-      persist();
-    }
-
-    // Initial render
+  // ─── FETCH + RENDER ─────────────────────────────────────────────────────
+  let posts = [];
+  async function loadPosts() {
+    const res = await fetch(API);
+    posts = await res.json();
     renderPosts();
+  }
 
-    // Add a new post
-    function submitPost() {
-      const text = document.getElementById('modalText').value.trim();
-      const photo = document.getElementById('modalPhoto').files[0];
-      if (!text && !photo) return;
+  function createPostElement(p) {
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `
+      <div class="datetime">${formatTs(p.timestamp)}</div>
+      <div class="author">Администратор <span class="pin-icon">📌</span></div>
+      <div class="post-menu" onclick="togglePostMenu(this)">⋯</div>
+      <div class="menu-options">
+        <button onclick="togglePin('${p.id}')">${p.pinned? 'Депинуј':'Пинуј'}</button>
+        <button onclick="startEdit('${p.id}')">Уреди</button>
+        <button onclick="removePost('${p.id}')">Обриши</button>
+      </div>
+      <div class="post-content">${p.text}</div>
+      ${p.img? `<img src="${p.img}" alt="">` : ''}
+    `;
+    if (p.pinned) div.querySelector('.pin-icon').style.display = 'inline';
+    return div;
+  }
 
-      const add = imgData => {
-        posts.unshift({
-          text,
-          img: imgData,
-          pinned: false,
-          timestamp: Date.now()
-        });
-        renderPosts();
-      };
+  function renderPosts() {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = '';
+    // pinned first
+    posts
+      .sort((a,b)=> (b.pinned?1:0)-(a.pinned?1:0))
+      .forEach(p => container.appendChild(createPostElement(p)));
+  }
 
-      if (photo) {
-        const reader = new FileReader();
-        reader.onload = () => add(reader.result);
-        reader.readAsDataURL(photo);
-      } else {
-        add(null);
-      }
-
-      closeModal();
-    }
-
-    // Post-menu actions
-    function togglePostMenu(el) {
-      document.querySelectorAll('.menu-options').forEach(m => {
-        if (m!==el.nextElementSibling) m.style.display='none';
+  // ─── CRUD ACTIONS ──────────────────────────────────────────────────────
+  async function submitPost() {
+    const text = document.getElementById('modalText').value.trim();
+    const photo = document.getElementById('modalPhoto').files[0];
+    let imgData = null;
+    if (photo) {
+      imgData = await new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result);
+        fr.readAsDataURL(photo);
       });
-      const opts = el.nextElementSibling;
-      opts.style.display = opts.style.display==='flex'?'none':'flex';
     }
-    function pinPost(btn) {
-      const postEl = btn.closest('.post');
-      const idx = [...container.children].indexOf(postEl);
-      posts[idx].pinned = !posts[idx].pinned;
-      renderPosts();
-    }
-    function deletePost(btn) {
-      const postEl = btn.closest('.post');
-      const idx = [...container.children].indexOf(postEl);
-      posts.splice(idx,1);
-      renderPosts();
-    }
-    function editPost(btn) {
-      const postEl = btn.closest('.post');
-      const idx = [...container.children].indexOf(postEl);
-      const pd = posts[idx];
-      const content = postEl.querySelector('.post-content');
-      const orig = content.textContent;
-      postEl.classList.add('editing');
-      content.innerHTML = `
-        <textarea>${orig}</textarea>
-        <div class="edit-actions">
-          <button class="save-btn" onclick="saveEdit(this)">Сачувај</button>
-          <button class="cancel-btn" onclick="cancelEdit(this)">Откажи</button>
-        </div>
-      `;
-      btn.parentElement.style.display='none';
-    }
-    function saveEdit(btn) {
-      const postEl = btn.closest('.post');
-      const idx = [...container.children].indexOf(postEl);
-      const ta = postEl.querySelector('textarea');
-      posts[idx].text = ta.value;
-      postEl.classList.remove('editing');
-      renderPosts();
-    }
-    function cancelEdit(btn) {
-      renderPosts(); // discard changes
-    }
-
-    // Close any open menus on outside click
-    document.addEventListener('click', e => {
-      document.querySelectorAll('.menu-options').forEach(menu => {
-        const icon = menu.previousElementSibling;
-        if (!menu.contains(e.target) && !icon.contains(e.target)) {
-          menu.style.display = 'none';
-        }
-      });
+    await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ text, img: imgData })
     });
-  </script>
+    closeModal();
+    loadPosts();
+  }
+
+  async function togglePin(id){
+    const post = posts.find(p=>p.id===id);
+    await fetch(`${API}/${id}`, {
+      method: "PUT",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ pinned: !post.pinned })
+    });
+    loadPosts();
+  }
+
+  async function removePost(id){
+    await fetch(`${API}/${id}`, { method: "DELETE" });
+    loadPosts();
+  }
+
+  function startEdit(id){
+    const postEl = [...document.querySelectorAll('.post')]
+      .find(el=> el.querySelector(".menu-options button").onclick
+        .toString().includes(id)
+      );
+    const p = posts.find(x=>x.id===id);
+    const content = postEl.querySelector('.post-content');
+    content.innerHTML = `<textarea>${p.text}</textarea>
+      <div class="edit-actions">
+        <button onclick="saveEdit('${id}')">Сачувај</button>
+        <button onclick="loadPosts()">Откажи</button>
+      </div>`;
+  }
+  async function saveEdit(id){
+    const postEl = [...document.querySelectorAll('.post')]
+      .find(el=> el.querySelector(".menu-options button").onclick
+        .toString().includes(id)
+      );
+    const newText = postEl.querySelector('textarea').value;
+    await fetch(`${API}/${id}`, {
+      method: "PUT",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ text: newText })
+    });
+    loadPosts();
+  }
+
+  // ─── MISC UI ────────────────────────────────────────────────────────────
+  function toggleMenu(){ document.getElementById('sideMenu').classList.toggle('open'); }
+  function openModal(){ document.getElementById('postModal').classList.add('open'); }
+  function closeModal(){
+    document.getElementById('postModal').classList.remove('open');
+    document.getElementById('modalText').value = '';
+    document.getElementById('modalPhoto').value = '';
+    document.getElementById('fileName').textContent = 'Ниједан фајл није изабран';
+  }
+  document.getElementById('helpMenuBtn').onclick = e=>{ e.preventDefault(); document.getElementById('helpModal').classList.add('open'); };
+  function closeHelp(){ document.getElementById('helpModal').classList.remove('open'); }
+  function updateFileName(){
+    const inp = document.getElementById('modalPhoto'),
+          lbl = document.getElementById('fileName');
+    lbl.textContent = inp.files[0]?.name || 'Ниједан фајл није изабран';
+  }
+  document.addEventListener('click', e=> {
+    document.querySelectorAll('.menu-options').forEach(m=> {
+      if (!m.contains(e.target) && !m.previousElementSibling.contains(e.target)) {
+        m.style.display = 'none';
+      }
+    });
+  });
+  window.addEventListener('DOMContentLoaded', loadPosts);
+</script>
+
 </body>
 </html>
