@@ -1,7 +1,7 @@
 // server.js
 const express = require("express");
 const path = require("path");
-// ← use the “node” entrypoint so JSONFile is exported correctly in CJS
+// Pull in the Node‐flavored CJS build of lowdb
 const { Low, JSONFile } = require("lowdb/node");
 
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
@@ -11,8 +11,8 @@ const db = new Low(adapter);
 
 async function initDb() {
   await db.read();
-  // initialize if empty
-  db.data = db.data || { posts: [] };
+  // if file empty, set defaults
+  db.data ||= { posts: [] };
   await db.write();
 }
 initDb();
@@ -54,9 +54,8 @@ app.post("/api/posts", async (req, res) => {
 });
 
 app.put("/api/posts/:id", async (req, res) => {
-  const { id } = req.params;
   await db.read();
-  const post = db.data.posts.find(p => p.id === id);
+  const post = db.data.posts.find(p => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Not found" });
 
   Object.assign(post, req.body);
@@ -65,9 +64,8 @@ app.put("/api/posts/:id", async (req, res) => {
 });
 
 app.delete("/api/posts/:id", async (req, res) => {
-  const { id } = req.params;
   await db.read();
-  db.data.posts = db.data.posts.filter(p => p.id !== id);
+  db.data.posts = db.data.posts.filter(p => p.id !== req.params.id);
   await db.write();
   res.json({ success: true });
 });
