@@ -7,15 +7,17 @@ import admin from "firebase-admin";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Firebase Admin SDK from environment variable
+// Provera da li je ENV promenljiva postavljena
 if (!process.env.FIREBASE_CONFIG) {
   throw new Error("Environment variable FIREBASE_CONFIG is not set!");
 }
 
+// Parsiranje JSON iz ENV promenljive
 const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 
+// Inicijalizacija Firebase Admin SDK sa sertifikatom iz ENV
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
@@ -42,9 +44,7 @@ app.get("/api/posts", async (req, res) => {
   try {
     const postsRef = db.collection("posts");
     const snapshot = await postsRef.orderBy("timestamp", "desc").get();
-
-    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+    const posts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -62,9 +62,7 @@ app.post("/api/posts", async (req, res) => {
       pinned: false,
       timestamp: Date.now(),
     };
-
     const docRef = await db.collection("posts").add(newPost);
-
     res.json({ id: docRef.id, ...newPost });
   } catch (error) {
     console.error("Error creating post:", error);
@@ -78,14 +76,11 @@ app.put("/api/posts/:id", async (req, res) => {
     const postId = req.params.id;
     const postRef = db.collection("posts").doc(postId);
     const doc = await postRef.get();
-
     if (!doc.exists) {
       return res.status(404).json({ error: "Post not found" });
     }
-
     await postRef.update(req.body);
     const updatedDoc = await postRef.get();
-
     res.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
     console.error("Error updating post:", error);
