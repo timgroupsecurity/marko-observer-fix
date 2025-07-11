@@ -27,7 +27,7 @@ const limiter = rateLimit({
     });
   }
 });
-app.use('/api/check-pin', limiter);
+//app.use('/api/check-pin', limiter);
 
 // PIN check endpoint
 app.post("/api/check-pin", (req, res) => {
