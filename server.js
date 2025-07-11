@@ -2,20 +2,17 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import admin from "firebase-admin";
-import fs from "fs";
 
 // __dirname shim
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Firebase Admin SDK
-const serviceAccountPath = path.join(__dirname, "firebase-service-account.json"); // <- replace with your actual filename
-
-if (!fs.existsSync(serviceAccountPath)) {
-  throw new Error("Firebase service account JSON not found! Place your key file in the root folder.");
+// Initialize Firebase Admin SDK from environment variable
+if (!process.env.FIREBASE_CONFIG) {
+  throw new Error("Environment variable FIREBASE_CONFIG is not set!");
 }
 
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
