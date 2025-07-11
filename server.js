@@ -16,17 +16,17 @@ const OBSERVER_PIN = process.env.OBSERVER_PIN || "5306";
 const failedLogins = {};
 
 // Rate limiter for /api/check-pin
-const limiter = rateLimit({
-  windowMs: DAY,
-  max: MAX_ATTEMPTS,
-  handler: (req, res) => {
-    return res.status(429).json({
-      success: false,
-      message: "Превише неуспелих покушаја. Покушајте поново за 24 сата.",
-      remaining: 0
-    });
-  }
-});
+//const limiter = rateLimit({
+ // windowMs: DAY,
+  //max: MAX_ATTEMPTS,
+  //handler: (req, res) => {
+    //return res.status(429).json({
+     // success: false,
+     // message: "Превише неуспелих покушаја. Покушајте поново за 24 сата.",
+    //  remaining: 0
+   // });
+ // }
+//});
 //app.use('/api/check-pin', limiter);
 
 // PIN check endpoint
