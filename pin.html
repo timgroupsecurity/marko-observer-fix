@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <title>PIN Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* wrap entire page so we can slide it out */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #pageWrapper {
+      width: 100%;
+      height: 100%;
+      transition: transform 1.5s ease;
+      display: flex;               /* ← ADDED */
+      align-items: center;         /* ← ADDED */
+      justify-content: center;     /* ← ADDED */
+    }
+    #pageWrapper.slide-out {
+      transform: translateX(-100%);
+    }
+
+    /* background & watermark */
+    body {
+      background: radial-gradient(ellipse at center, rgba(40,40,40,0.9), rgba(20,20,20,1));
+      background-color: #111;
+      background-blend-mode: overlay;
+      color: white;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(135deg, #5e1a94, #256b9f);
+      z-index: 0;
+    }
+    .watermark {
+      position: fixed;
+      top: 10%; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10vw;
+      font-family: Impact, Arial Black, sans-serif;
+      color: rgba(255,255,255,0.05);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      text-align: center;
+      line-height: 1.2;
+      white-space: pre-line;
+    }
+
+    /* form container */
+    .container {
+      background: rgba(0,0,0,0.6);
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.7);
+      padding: 30px 20px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      z-index: 1;
+    }
+    .container h2, .container p { margin: 10px 0; }
+
+    /* PIN display boxes */
+    .pin-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .pin-box {
+      width: 45px; height: 60px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 10px;
+      border-bottom: 4px solid gold;
+      color: black;
+      font-size: 2.2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* numeric keypad */
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .key, .erase-key, .button {
+      touch-action: manipulation;
+    }
+    .key {
+      width: 60px; height: 60px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid gold;
+      border-radius: 10px;
+      color: white;
+      font-size: 1.6em;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .key:hover { background: rgba(255,255,255,0.2); }
+    .key:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+    .erase-key {
+      background: white;
+      color: black;
+      font-weight: bold;
+    }
+
+    /* back / submit buttons */
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .button {
+      border: 2px solid gold;
+      border-radius: 10px;
+      padding: 10px 25px;
+      color: gold;
+      font-size: 1.2em;
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.3s;
+    }
+    .button:hover {
+      background: gold;
+      color: black;
+    }
+
+    /* loading overlay */
+    #loadingOverlay {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+    #loadingOverlay.active { display: flex; }
+    #loadingOverlay img {
+      width: 25vmin;
+      height: 25vmin;
+      border-radius: 20px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <img src="logo.png" alt="Logo" />
+  </div>
+
+  <!-- everything you had, now inside pageWrapper -->
+  <div id="pageWrapper">
+    <div class="watermark">T&amp;M<br>Solutions<br>HR</div>
+    <div class="container">
+      <h2>Унесите PIN код</h2>
+      <p>Потврдите четвороцифрени безбедносни ПИН</p>
+
+      <div class="pin-inputs">
+        <div class="pin-box" id="pin0"></div>
+        <div class="pin-box" id="pin1"></div>
+        <div class="pin-box" id="pin2"></div>
+        <div class="pin-box" id="pin3"></div>
+      </div>
+
+      <div class="keypad">
+        <button class="key" onclick="pressKey('1')">1</button>
+        <button class="key" onclick="pressKey('2')">2</button>
+        <button class="key" onclick="pressKey('3')">3</button>
+        <button class="key" onclick="pressKey('4')">4</button>
+        <button class="key" onclick="pressKey('5')">5</button>
+        <button class="key" onclick="pressKey('6')">6</button>
+        <button class="key" onclick="pressKey('7')">7</button>
+        <button class="key" onclick="pressKey('8')">8</button>
+        <button class="key" onclick="pressKey('9')">9</button>
+        <button class="key" onclick="pressKey('.')">.</button>
+        <button class="key" onclick="pressKey('0')">0</button>
+        <button class="key erase-key" onclick="eraseKey()">×</button>
+      </div>
+
+      <div class="buttons">
+        <div class="button" onclick="goBack()">Назад</div>
+        <div class="button" onclick="login()">Улогуј се</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pageWrapper   = document.getElementById('pageWrapper');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    let pin = "";
+    function pressKey(ch) {
+      if (pin.length < 4) {
+        pin += ch;
+        updateInput();
+      }
+    }
+    function eraseKey() {
+      pin = pin.slice(0, -1);
+      updateInput();
+    }
+    function updateInput() {
+      for (let i = 0; i < 4; i++) {
+        document.getElementById('pin' + i).textContent = pin[i] || '';
+      }
+    }
+
+    function goBack() {
+      loadingOverlay.classList.add('active');
+      pageWrapper.classList.add('slide-out');
+      setTimeout(() => window.location.href = 'index.html', 1500);
+    }
+
+    async function login() {
+      if (pin.length !== 4) {
+        alert('Унесите четвороцифрени ПИН');
+        return;
+      }
+      try {
+        const res = await fetch('/api/check-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        const data = await res.json();
+        if (data.success) {
+      localStorage.setItem('userRole', data.role);
+      localStorage.setItem('userPin', pin);
+          loadingOverlay.classList.add('active');
+          pageWrapper.classList.add('slide-out');
+          setTimeout(() => window.location.href = 'posts.html', 1500);
+        } else {
+          alert(data.message);
+          pin = '';
+          updateInput();
+        }
+      } catch {
+        alert('Грешка на серверу. Покушајте касније.');
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.key >= '0' && e.key <= '9') || e.key === '.') pressKey(e.key);
+      else if (e.key === 'Backspace') eraseKey();
+      else if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>

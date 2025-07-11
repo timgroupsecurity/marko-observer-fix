@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta 
+    name="viewport" 
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" 
+  />
+  <title>Добродошли</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Slide-wrapper */
+    #pageWrapper {
+      width: 100%;
+      height: 100%;
+      transition: transform 1.5s ease;  /* now 1.5s */
+    }
+    #pageWrapper.slide-out {
+      transform: translateX(-100%);
+    }
+
+    /* Background layers */
+    body {
+      background: radial-gradient(ellipse at center, rgba(40,40,40,0.9), rgba(20,20,20,1));
+      background-color: #111;
+      background-blend-mode: overlay;
+      position: relative;
+      color: white;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(135deg, #5e1a94, #256b9f);
+      z-index: 0;
+    }
+
+    /* Watermark */
+    .watermark {
+      position: fixed;
+      top: 10%; left: 50%;
+      transform: translateX(-50%);
+      font-family: Impact, Arial Black, sans-serif;
+      font-size: 10vw;
+      color: rgba(255,255,255,0.05);
+      text-align: center;
+      line-height: 1.2;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      white-space: pre-line;
+    }
+
+    /* Welcome buttons */
+    .welcome-container {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .btn {
+      background: rgba(0,0,0,0.4);
+      color: gold;
+      font-size: 1.5em;
+      padding: 20px 40px;
+      margin: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s, background 0.3s;
+    }
+    .btn:hover { background: rgba(0,0,0,0.6); }
+    .btn:active { transform: scale(0.95); }
+
+    /* Contact modal */
+    #contactModal {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+    #contactModal.open { display: flex; }
+    .contact-content {
+      position: relative;
+      width: 90%; max-width: 400px;
+      background: #000;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.8);
+      color: #fff;
+      text-align: left;
+    }
+    .contact-content .close {
+      position: absolute; top:10px; right:10px;
+      font-size:1.2em; cursor:pointer; color:#fff;
+    }
+    .contact-content h2 { margin-bottom:15px; font-size:1.5em; }
+    .contact-content p { margin:10px 0; font-size:1.1em; }
+    .contact-content a { color: gold; text-decoration: none; }
+    .contact-content a:hover { text-decoration: underline; }
+
+    /* Loading overlay */
+    #loadingOverlay {
+      position: fixed; top:0; left:0;
+      width:100%; height:100%;
+      background: #000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3;
+    }
+    #loadingOverlay.active { display: flex; }
+    #loadingOverlay img {
+      width: 25vmin;
+      height: 25vmin;
+      border-radius: 20px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <img src="logo.png" alt="Logo" />
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contactModal">
+    <div class="contact-content">
+      <div class="close" id="closeModal">✕</div>
+      <h2>Контакт</h2>
+      <p>Е-пошта: <a href="mailto:info@timhr.rs">info@timhr.rs</a></p>
+      <p>Телефон: <a href="tel:+381621246823">+381 62 124 6823</a></p>
+      <p>Телефон: <a href="tel:+381621246824">+381 62 124 6824</a></p>
+    </div>
+  </div>
+
+  <!-- Page Wrapper -->
+  <div id="pageWrapper">
+    <div class="watermark">T&amp;M<br>Solutions<br>HR</div>
+    <div class="welcome-container">
+      <div class="btn" id="contactBtn">Контакт</div>
+      <div class="btn" id="loginBtn">Улогуј се</div>
+    </div>
+  </div>
+
+  <script>
+    const contactBtn = document.getElementById('contactBtn');
+    const closeModal  = document.getElementById('closeModal');
+    const contactModal = document.getElementById('contactModal');
+    const loginBtn     = document.getElementById('loginBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const pageWrapper    = document.getElementById('pageWrapper');
+
+    // Contact modal logic
+    contactBtn.addEventListener('click', () => contactModal.classList.add('open'));
+    closeModal.addEventListener('click', () => contactModal.classList.remove('open'));
+
+    // Slide-out + overlay + redirect
+    loginBtn.addEventListener('click', e => {
+      e.preventDefault();
+      loadingOverlay.classList.add('active');
+      pageWrapper.classList.add('slide-out');
+      setTimeout(() => {
+        window.location.href = 'pin.html';
+      }, 1500); // 1.5 seconds
+    });
+  </script>
+</body>
+</html>
