@@ -1,9 +1,12 @@
 // server.js
 const express = require("express");
 const path = require("path");
-const { Low, JSONFile } = require("lowdb");
 
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
+// use the node-specific entrypoint for JSONFile in lowdb v3+
+const { Low } = require("lowdb");
+const { JSONFile } = require("lowdb/node");
+
 const dbFile = path.join(__dirname, "db.json");
 const adapter = new JSONFile(dbFile);
 const db = new Low(adapter);
