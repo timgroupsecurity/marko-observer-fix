@@ -1,30 +1,27 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
-import { Low } from "lowdb";
-import { JSONFile } from "lowdb/node";
+import admin from "firebase-admin";
+import fs from "fs";
 
 // __dirname shim
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure db.json exists
-const dbFile = path.join(__dirname, "db.json");
-if (!fs.existsSync(dbFile)) {
-  fs.writeFileSync(dbFile, JSON.stringify({ posts: [] }, null, 2));
+// Initialize Firebase Admin SDK
+const serviceAccountPath = path.join(__dirname, "firebase-service-account.json"); // <- replace with your actual filename
+
+if (!fs.existsSync(serviceAccountPath)) {
+  throw new Error("Firebase service account JSON not found! Place your key file in the root folder.");
 }
 
-// LowDB setup WITH default data
-const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, { posts: [] }); // ✅ FIXED
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
 
-// Initialize DB
-await db.read();
-if (!db.data) {
-  db.data = { posts: [] };
-  await db.write();
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
 
 // Express app
 const app = express();
@@ -45,44 +42,73 @@ app.post("/api/check-pin", (req, res) => {
 
 // Get posts
 app.get("/api/posts", async (req, res) => {
-  await db.read();
-  res.json(db.data.posts);
+  try {
+    const postsRef = db.collection("posts");
+    const snapshot = await postsRef.orderBy("timestamp", "desc").get();
+
+    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json(posts);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ error: "Failed to fetch posts" });
+  }
 });
 
 // Create post
 app.post("/api/posts", async (req, res) => {
-  const { text = "", img = null } = req.body;
-  const newPost = {
-    id: Date.now().toString(),
-    text,
-    img,
-    pinned: false,
-    timestamp: Date.now(),
-  };
-  db.data.posts.unshift(newPost);
-  await db.write();
-  res.json(newPost);
+  try {
+    const { text = "", img = null } = req.body;
+    const newPost = {
+      text,
+      img,
+      pinned: false,
+      timestamp: Date.now(),
+    };
+
+    const docRef = await db.collection("posts").add(newPost);
+
+    res.json({ id: docRef.id, ...newPost });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).json({ error: "Failed to create post" });
+  }
 });
 
 // Update post
 app.put("/api/posts/:id", async (req, res) => {
-  await db.read();
-  const post = db.data.posts.find((p) => p.id === req.params.id);
-  if (!post) return res.status(404).json({ error: "Not found" });
-  Object.assign(post, req.body);
-  await db.write();
-  res.json(post);
+  try {
+    const postId = req.params.id;
+    const postRef = db.collection("posts").doc(postId);
+    const doc = await postRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    await postRef.update(req.body);
+    const updatedDoc = await postRef.get();
+
+    res.json({ id: updatedDoc.id, ...updatedDoc.data() });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    res.status(500).json({ error: "Failed to update post" });
+  }
 });
 
 // Delete post
 app.delete("/api/posts/:id", async (req, res) => {
-  await db.read();
-  db.data.posts = db.data.posts.filter((p) => p.id !== req.params.id);
-  await db.write();
-  res.json({ success: true });
+  try {
+    const postId = req.params.id;
+    await db.collection("posts").doc(postId).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ error: "Failed to delete post" });
+  }
 });
 
-// Fallback
+// Fallback to posts.html
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "posts.html"));
 });
