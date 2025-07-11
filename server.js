@@ -1,6 +1,6 @@
 // server.js
 import express from "express";
-import path from "path";
+import path, { resolve } from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { Low } from "lowdb";
@@ -18,7 +18,7 @@ if (!fs.existsSync(dbFile)) {
 
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
 const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, { posts: [] }); // ← passing default data here!
+const db = new Low(adapter, { posts: [] });
 
 await db.read();
 await db.write();
@@ -75,12 +75,19 @@ app.delete("/api/posts/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// ─── FALLBACK & START ────────────────────────────────────────────────────────
+// ─── SAFER FALLBACK ROUTE ─────────────────────────────────────────────────────
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "posts.html"));
+  const htmlPath = resolve(__dirname, "posts.html");
+  res.sendFile(htmlPath, (err) => {
+    if (err) {
+      console.error("❌ Failed to send posts.html:", err.message);
+      res.status(500).send("posts.html missing or cannot be loaded.");
+    }
+  });
 });
 
+// ─── START SERVER ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server running on port ${PORT}`)
+  console.log(`✅ Server running on port ${PORT}`)
 );
