@@ -1,19 +1,19 @@
 // server.js
 const express = require("express");
 const path = require("path");
-const { Low, JSONFile } = require("lowdb");
+// ← use the “node” entrypoint so JSONFile is exported correctly in CJS
+const { Low, JSONFile } = require("lowdb/node");
 
 // ─── LowDB Setup ──────────────────────────────────────────────────────────────
 const dbFile = path.join(__dirname, "db.json");
-// provide your default data shape here:
-const defaultData = { posts: [] };
 const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, defaultData);
+const db = new Low(adapter);
 
 async function initDb() {
-  // this will create db.json with { posts: [] } if it doesn’t exist
   await db.read();
-  // no need to re-write defaults on every start
+  // initialize if empty
+  db.data = db.data || { posts: [] };
+  await db.write();
 }
 initDb();
 
@@ -30,7 +30,7 @@ app.post("/api/check-pin", (req, res) => {
   const { pin } = req.body;
   if (pin === ADMIN_PIN)    return res.json({ success: true, role: "admin" });
   if (pin === OBSERVER_PIN) return res.json({ success: true, role: "observer" });
-  return res.status(401).json({ success: false, message: "Неправильный PIN." });
+  return res.status(401).json({ success: false, message: "Неправилан PIN." });
 });
 
 // ─── POSTS CRUD API ───────────────────────────────────────────────────────────
@@ -40,7 +40,6 @@ app.get("/api/posts", async (req, res) => {
 });
 
 app.post("/api/posts", async (req, res) => {
-  await db.read();
   const { text, img } = req.body;
   const newPost = {
     id: Date.now().toString(),
@@ -55,8 +54,8 @@ app.post("/api/posts", async (req, res) => {
 });
 
 app.put("/api/posts/:id", async (req, res) => {
-  await db.read();
   const { id } = req.params;
+  await db.read();
   const post = db.data.posts.find(p => p.id === id);
   if (!post) return res.status(404).json({ error: "Not found" });
 
@@ -66,8 +65,8 @@ app.put("/api/posts/:id", async (req, res) => {
 });
 
 app.delete("/api/posts/:id", async (req, res) => {
-  await db.read();
   const { id } = req.params;
+  await db.read();
   db.data.posts = db.data.posts.filter(p => p.id !== id);
   await db.write();
   res.json({ success: true });
